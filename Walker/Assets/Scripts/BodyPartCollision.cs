@@ -10,7 +10,7 @@ public class BodyPartCollision : MonoBehaviour
         collided = 0;
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private void OnCollisionStay(Collision collision)
     {
         collided = 1;
     }

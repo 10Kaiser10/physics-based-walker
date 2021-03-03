@@ -21,11 +21,11 @@ public class Brain : MonoBehaviour
     private BodyPartCollision[] bpcArr;
 
     //neural network
-    private int inputNodes = 58;
-    //private int outputNodes = 24;
-    private int[] hiddenLayersNodes = { 50, 40, 32 };
-    private int[] LayersNodes = { 58, 50, 40, 32, 24 };
-    private float[][,] weightsNBiases;
+    public int inputNodes = 58;
+    public int outputNodes = 24;
+    public int[] hiddenLayersNodes = { 50, 40, 32 };
+    public int[] LayersNodes = { 58, 50, 40, 32, 24 };
+    public float[][,] weightsNBiases;
 
     //feet touching check
     public BodyPartCollision Lfoot;
@@ -42,22 +42,22 @@ public class Brain : MonoBehaviour
             bpcArr[i] = rbArr[i].gameObject.GetComponent<BodyPartCollision>();
         }
 
-        weightsNBiases = new float[hiddenLayersNodes.Length + 1][,];
+        //weightsNBiases = new float[hiddenLayersNodes.Length + 1][,];
 
-        for(int i=0; i<=hiddenLayersNodes.Length; i++)
-        {
-            int rows = LayersNodes[i + 1];
-            int cols = LayersNodes[i] + 1;
-            weightsNBiases[i] = new float[rows, cols];
+        //for(int i=0; i<=hiddenLayersNodes.Length; i++)
+        //{
+        //    int rows = LayersNodes[i + 1];
+        //    int cols = LayersNodes[i] + 1;
+        //    weightsNBiases[i] = new float[rows, cols];
 
-            for(int j=0; j<rows; j++)
-            {
-                for(int k=0; k<cols; k++)
-                {
-                    weightsNBiases[i][j, k] = Random.Range(-1000, 1000);
-                }
-            }
-        }
+        //    for(int j=0; j<rows; j++)
+        //    {
+        //        for(int k=0; k<cols; k++)
+        //        {
+        //            weightsNBiases[i][j, k] = Random.Range(-1000, 1000);
+        //        }
+        //    }
+        //}
 
         score = 0;
     }
@@ -132,7 +132,7 @@ public class Brain : MonoBehaviour
 
         for (int i = 0; i < 8; i++)
         {
-            Vector3 pos = rbArr[i].transform.localPosition;
+            Vector3 pos = rbArr[i].transform.localPosition - rbArr[1].transform.localPosition;
             inputVec[i * 3] = pos.x;
             inputVec[i * 3 + 1] = pos.y;
             inputVec[i * 3 + 2] = pos.z;
@@ -191,7 +191,8 @@ public class Brain : MonoBehaviour
             bpcArr[i].collided = 0;
         }
 
-        score -= touches / 100;
+        //score -= touches / 100;
+        score += (bpcArr[0].transform.localPosition.y);
     }
 
     void FixedUpdate()
