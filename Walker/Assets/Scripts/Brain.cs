@@ -8,63 +8,47 @@ public class Brain : MonoBehaviour
     public float score;
 
     //body parts
-    public Rigidbody torso;
-    public Rigidbody pelvis;
-    public Rigidbody thighL;
-    public Rigidbody thighR;
-    public Rigidbody legL;
-    public Rigidbody legR;
-    public Rigidbody feetL;
-    public Rigidbody feetR;
-    private Rigidbody[] rbArr;
-    private HingeJoint[] hJoints;
+    public GameObject[] bodyParts;
+    private ArticulationBody[] artBodies;
     private BodyPartCollision[] bpcArr;
+    private ArticulationDrive[] artDrives;
 
     //neural network
-    public int inputNodes = 58;
-    public int outputNodes = 24;
-    public int[] hiddenLayersNodes = { 50, 40, 32 };
-    public int[] LayersNodes = { 58, 50, 40, 32, 24 };
+    [System.NonSerialized]
+    public int inputNodes = 76;
+    [System.NonSerialized]
+    public int outputNodes = 13;
+    [System.NonSerialized]
+    public int[] hiddenLayersNodes = { 56, 36 };
+    [System.NonSerialized]
+    public int[] LayersNodes = { 76, 56, 36, 13 };
+    [System.NonSerialized]
     public float[][,] weightsNBiases;
-
-    //feet touching check
-    public BodyPartCollision Lfoot;
-    public BodyPartCollision Rfoot;
 
     void Start()
     {
-        rbArr = new Rigidbody[] { torso, pelvis, thighL, thighR, legL, legR, feetL, feetR };
-        hJoints = new HingeJoint[rbArr.Length];
-        bpcArr = new BodyPartCollision[rbArr.Length];
-        for(int i=0; i<rbArr.Length; i++)
+        artBodies = new ArticulationBody[bodyParts.Length];
+        bpcArr = new BodyPartCollision[bodyParts.Length];
+        for (int i = 0; i < bodyParts.Length; i++)
         {
-            hJoints[i] = rbArr[i].gameObject.GetComponent<HingeJoint>();
-            bpcArr[i] = rbArr[i].gameObject.GetComponent<BodyPartCollision>();
+            artBodies[i] = bodyParts[i].GetComponent<ArticulationBody>();
+            bpcArr[i] = bodyParts[i].transform.GetChild(0).GetComponent<BodyPartCollision>();
         }
-
-        //weightsNBiases = new float[hiddenLayersNodes.Length + 1][,];
-
-        //for(int i=0; i<=hiddenLayersNodes.Length; i++)
-        //{
-        //    int rows = LayersNodes[i + 1];
-        //    int cols = LayersNodes[i] + 1;
-        //    weightsNBiases[i] = new float[rows, cols];
-
-        //    for(int j=0; j<rows; j++)
-        //    {
-        //        for(int k=0; k<cols; k++)
-        //        {
-        //            weightsNBiases[i][j, k] = Random.Range(-1000, 1000);
-        //        }
-        //    }
-        //}
 
         score = 0;
     }
 
+    float putInBetween(float l, float h, float n)
+    {
+        float diff = h - l;
+        float off = n % diff;
+        if (off < 0) { off += diff; }
+        return l + off;
+    }
+
     float leakyRelu(float input)
     {
-        if(input>0)
+        if (input > 0)
         {
             return input;
         }
@@ -79,11 +63,11 @@ public class Brain : MonoBehaviour
         float[] output = new float[input.Length + 1];
         output[0] = 1;
 
-        for(int i=1; i<=input.Length; i++)
+        for (int i = 1; i <= input.Length; i++)
         {
             output[i] = leakyRelu(input[i - 1]);
         }
-        
+
         return output;
     }
 
@@ -94,12 +78,12 @@ public class Brain : MonoBehaviour
 
         float[] output = new float[rows];
 
-        for(int i=0;i<rows;i++)
+        for (int i = 0; i < rows; i++)
         {
             output[i] = 0;
-            for(int j=0;j<cols;j++)
+            for (int j = 0; j < cols; j++)
             {
-                output[i] += matrix[i,j] * vector[j];
+                output[i] += matrix[i, j] * vector[j];
             }
         }
 
@@ -117,7 +101,7 @@ public class Brain : MonoBehaviour
             currentVector[i] = input[i - 1];
         }
 
-        for (int i=0; i<hiddenLayersNodes.Length; i++)
+        for (int i = 0; i < hiddenLayersNodes.Length; i++)
         {
             currentVector = matrixMult(weightsNBiases[i], currentVector);
             currentVector = leakyRelu(currentVector);
@@ -132,7 +116,7 @@ public class Brain : MonoBehaviour
 
         for (int i = 0; i < 8; i++)
         {
-            Vector3 pos = rbArr[i].transform.localPosition - rbArr[1].transform.localPosition;
+            Vector3 pos = bodyParts[i].transform.localPosition;
             inputVec[i * 3] = pos.x;
             inputVec[i * 3 + 1] = pos.y;
             inputVec[i * 3 + 2] = pos.z;
@@ -140,59 +124,84 @@ public class Brain : MonoBehaviour
 
         for (int i = 0; i < 8; i++)
         {
-            Vector3 vel = rbArr[i].velocity;
+            Vector3 vel = artBodies[i].velocity;
             inputVec[24 + i * 3] = vel.x;
             inputVec[24 + i * 3 + 1] = vel.y;
             inputVec[24 + i * 3 + 2] = vel.z;
         }
 
-        for (int i = 0; i < 4; i++)
+        int[] index = new int[3] { 0, 2, 3 };
+        for(int i = 0; i<3; i++)
         {
-            inputVec[48 + i * 2] = hJoints[i + 2].angle;
-            inputVec[48 + i * 2 + 1] = hJoints[i + 2].velocity;
+            inputVec[48 + 0 + i * 6] = artBodies[index[i]].jointVelocity[0];
+            inputVec[48 + 1 + i * 6] = artBodies[index[i]].jointVelocity[1];
+            inputVec[48 + 2 + i * 6] = artBodies[index[i]].jointVelocity[2];
+            inputVec[48 + 3 + i * 6] = artBodies[index[i]].jointPosition[0];
+            inputVec[48 + 4 + i * 6] = artBodies[index[i]].jointPosition[1];
+            inputVec[48 + 5 + i * 6] = artBodies[index[i]].jointPosition[2];
         }
 
-        inputVec[56] = Lfoot.collided;
-        inputVec[57] = Rfoot.collided;
-        Lfoot.collided = 0;
-        Rfoot.collided = 0;
+        index = new int[4] { 4, 5, 6, 7};
+        for(int i=0; i<4; i++)
+        {
+            inputVec[66 + 0 + i * 2] = artBodies[index[i]].jointVelocity[0];
+            inputVec[66 + 1 + i * 2] = artBodies[index[i]].jointPosition[0];
+        }
+
+        inputVec[74] = bpcArr[6].collided;
+        inputVec[75] = bpcArr[7].collided;
+        bpcArr[6].collided = 0;
+        bpcArr[7].collided = 0;
 
         float[] outputArr = NeuralNetwork(inputVec);
 
-        Vector3[] torques = new Vector3[8];
-        for (int i = 0; i < 8; i++)
+        artDrives = new ArticulationDrive[13];
+
+        index = new int[3] { 0, 2, 3 };
+        for (int i = 0; i < 3; i++)
         {
-            torques[i] = new Vector3(outputArr[3 * i], outputArr[3 * i + 1], outputArr[3 * i + 2]);
+            artDrives[3 * i + 0] = artBodies[index[i]].xDrive;
+            artDrives[3 * i + 1] = artBodies[index[i]].yDrive;
+            artDrives[3 * i + 2] = artBodies[index[i]].zDrive;
         }
 
-        Vector3 mean = Vector3.zero;
-        for (int i = 0; i < 8; i++)
+        index = new int[4] { 4, 5, 6, 7 };
+        for (int i = 0; i < 4; i++)
         {
-            mean += torques[i];
-        }
-        mean = mean / 8;
-        for (int i = 0; i < 8; i++)
-        {
-            torques[i] -= mean;
+            artDrives[9 + i] = artBodies[index[i]].xDrive;
         }
 
-        for (int i = 0; i < 8; i++)
+        for(int i=0; i<13; i++)
         {
-            rbArr[i].AddRelativeTorque(torques[i]);
+            artDrives[i].target = putInBetween(artDrives[i].lowerLimit, artDrives[i].upperLimit, outputArr[i]);
+        }
+
+        index = new int[3] { 0, 2, 3 };
+        for (int i = 0; i < 3; i++)
+        {
+            artBodies[index[i]].xDrive = artDrives[3 * i + 0];
+            artBodies[index[i]].yDrive = artDrives[3 * i + 1];
+            artBodies[index[i]].zDrive = artDrives[3 * i + 2];
+        }
+
+        index = new int[4] { 4, 5, 6, 7 };
+        for (int i = 0; i < 4; i++)
+        {
+            artBodies[index[i]].xDrive = artDrives[9 + i];
         }
     }
 
     void calcScore()
     {
         float touches = 0;
-        for(int i=0; i<6; i++)
+        for (int i = 0; i < 6; i++)
         {
             touches += bpcArr[i].collided;
             bpcArr[i].collided = 0;
         }
 
         //score -= touches / 100;
-        score += (bpcArr[0].transform.localPosition.y);
+        score += (bodyParts[0].transform.position.y);
     }
 
     void FixedUpdate()

@@ -23,10 +23,10 @@ public class Evolver : MonoBehaviour
     public GameObject parent;
 
     //neural network
-    private int inputNodes = 58;
-    private int outputNodes = 24;
-    private int[] hiddenLayersNodes = { 50, 40, 32 };
-    private int[] LayersNodes = { 58, 50, 40, 32, 24 };
+    private int inputNodes = 76;
+    private int outputNodes = 13;
+    private int[] hiddenLayersNodes = { 56, 36 };
+    private int[] LayersNodes = { 76, 56, 36, 13 };
     private float[][][,] weightsNBiases;
     private float[][][,] nextWeightsNBiases;
 
@@ -34,8 +34,8 @@ public class Evolver : MonoBehaviour
     {
         scores = new float[populationSize];
         weightsNBiases = new float[populationSize][][,];
-        
-        for(int i=0; i<populationSize; i++)
+
+        for (int i = 0; i < populationSize; i++)
         {
             weightsNBiases[i] = new float[hiddenLayersNodes.Length + 1][,];
 
@@ -49,7 +49,7 @@ public class Evolver : MonoBehaviour
                 {
                     for (int k = 0; k < cols; k++)
                     {
-                        weightsNBiases[i][l][j, k] = Random.Range(-1000, 1000);
+                        weightsNBiases[i][l][j, k] = Random.Range(-1f, 1f);
                     }
                 }
             }
@@ -57,9 +57,9 @@ public class Evolver : MonoBehaviour
 
         population = new GameObject[populationSize];
 
-        for(int i=0; i<populationSize; i++)
+        for (int i = 0; i < populationSize; i++)
         {
-            population[i] = Instantiate(prefab, new Vector3(10*(i/spawnRows), 0.983f, 10*(i%spawnRows)), Quaternion.identity, parent.transform);
+            population[i] = Instantiate(prefab, new Vector3(10 * (i / spawnRows), 0.983f, 10 * (i % spawnRows)), Quaternion.identity, parent.transform);
             Brain objBrain = population[i].transform.GetChild(0).GetComponent<Brain>();
             objBrain.inputNodes = inputNodes;
             objBrain.outputNodes = outputNodes;
@@ -77,10 +77,10 @@ public class Evolver : MonoBehaviour
 
     private void calcScores()
     {
-        for(int i=0;i<populationSize; i++)
+        for (int i = 0; i < populationSize; i++)
         {
-            scores[i] = groundTouchWieght*population[i].transform.GetChild(0).GetComponent<Brain>().score;
-            scores[i] += -distanceWieght*(population[i].transform.GetChild(2).transform.position.z - population[i].transform.position.z);
+            scores[i] = groundTouchWieght * population[i].transform.GetChild(0).GetComponent<Brain>().score;
+            //scores[i] += -distanceWieght * (population[i].transform.GetChild(1).transform.position.z - population[i].transform.position.z);
         }
     }
 
@@ -88,7 +88,7 @@ public class Evolver : MonoBehaviour
     {
         float scoreSum = 0;
         int elite = 0;
-        for(int i=0; i<populationSize; i++)
+        for (int i = 0; i < populationSize; i++)
         {
             scoreSum += scores[i];
             if (scores[elite] < scores[i]) { elite = i; }
@@ -120,7 +120,7 @@ public class Evolver : MonoBehaviour
     {
         int[] parents = new int[populationSize - 1];
         int comp1, comp2;
-        for(int i=0; i<populationSize-1; i++)
+        for (int i = 0; i < populationSize - 1; i++)
         {
             comp1 = Random.Range(0, populationSize);
             do
@@ -128,7 +128,7 @@ public class Evolver : MonoBehaviour
                 comp2 = Random.Range(0, populationSize);
             } while (comp1 == comp2);
 
-            if(scores[comp1] > scores[comp2]) { parents[i] = comp1; }
+            if (scores[comp1] > scores[comp2]) { parents[i] = comp1; }
             else { parents[i] = comp2; }
         }
 
@@ -148,7 +148,7 @@ public class Evolver : MonoBehaviour
                     for (int k = 0; k < cols; k++)
                     {
                         float coeff = Random.Range(0.01f, 0.99f);
-                        nextWeightsNBiases[i][l][j, k] = coeff*weightsNBiases[par1][l][j, k] + (1-coeff)*weightsNBiases[par2][l][j, k];
+                        nextWeightsNBiases[i][l][j, k] = coeff * weightsNBiases[par1][l][j, k] + (1 - coeff) * weightsNBiases[par2][l][j, k];
                     }
                 }
             }
@@ -157,7 +157,7 @@ public class Evolver : MonoBehaviour
 
     private void respawn()
     {
-        foreach(GameObject obj in population)
+        foreach (GameObject obj in population)
         {
             Destroy(obj);
         }
@@ -180,7 +180,7 @@ public class Evolver : MonoBehaviour
     {
         timer += Time.deltaTime;
 
-        if(timer > simDuration)
+        if (timer > simDuration)
         {
             timer = 0;
             calcScores();
